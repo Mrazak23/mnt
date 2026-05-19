@@ -15,8 +15,8 @@
   },
   "4122aa2a-a079-4865-8582-bbb9cedcf18a": {
     "nazev": "PRAHA: AMERICANO C",
-    "byl_plny": true,
-    "going": 8,
+    "byl_plny": false,
+    "going": 7,
     "max_cap": 8,
     "start": "2026-05-21T20:30:00"
   },
@@ -62,6 +62,13 @@
     "max_cap": 13,
     "start": "2026-06-02T07:00:00"
   },
+  "dc0e6e11-6b91-4e0f-8556-d50134275386": {
+    "nazev": "PRAHA : AMERICANO - C",
+    "byl_plny": false,
+    "going": 0,
+    "max_cap": 8,
+    "start": "2026-06-02T18:30:00"
+  },
   "a4248147-4dd5-45d2-87d9-a379da18b90a": {
     "nazev": "PRAHA: Padel al Dente by L'Osteria: MIX TEAM AMERICANO C-D",
     "byl_plny": false,
@@ -76,12 +83,26 @@
     "max_cap": 13,
     "start": "2026-06-09T07:00:00"
   },
+  "0d08aed6-fd3a-4fec-a684-29ecf589d2af": {
+    "nazev": "PRAHA : AMERICANO - C",
+    "byl_plny": false,
+    "going": 0,
+    "max_cap": 8,
+    "start": "2026-06-09T18:30:00"
+  },
   "31ccb6db-7719-4f76-aaff-f8f3f3b13b2e": {
     "nazev": "PRAHA : TUESDAY AMERICANO C",
     "byl_plny": false,
     "going": 0,
     "max_cap": 13,
     "start": "2026-06-16T07:00:00"
+  },
+  "ae59f182-8d38-4b38-ad73-4002d0fde011": {
+    "nazev": "PRAHA : AMERICANO - C",
+    "byl_plny": false,
+    "going": 0,
+    "max_cap": 8,
+    "start": "2026-06-16T18:30:00"
   },
   "cf539bcf-733c-466d-a8e6-9d36378b8ec4": {
     "nazev": "PRAHA : TUESDAY AMERICANO C",
@@ -90,11 +111,25 @@
     "max_cap": 13,
     "start": "2026-06-23T07:00:00"
   },
+  "338ca454-14cd-402f-ba5d-f097f3693668": {
+    "nazev": "PRAHA : AMERICANO - C",
+    "byl_plny": false,
+    "going": 0,
+    "max_cap": 8,
+    "start": "2026-06-23T18:30:00"
+  },
   "00f67736-ed8d-4aae-b583-b0574f97a74d": {
     "nazev": "PRAHA : TUESDAY AMERICANO C",
     "byl_plny": false,
     "going": 0,
     "max_cap": 13,
     "start": "2026-06-30T07:00:00"
+  },
+  "a286bfba-0f38-4031-a818-9d35cdf88e85": {
+    "nazev": "PRAHA : AMERICANO - C",
+    "byl_plny": false,
+    "going": 0,
+    "max_cap": 8,
+    "start": "2026-06-30T18:30:00"
   }
 }
