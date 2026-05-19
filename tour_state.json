@@ -1,0 +1,72 @@
+{
+  "0839c92e-0d5e-4d4d-ab22-be5668562fae": {
+    "nazev": "PRAHA: AMERICANO C",
+    "byl_plny": true,
+    "going": 8,
+    "max_cap": 8,
+    "start": "2026-05-19T18:30:00"
+  },
+  "8e8757f3-7ff2-4ad3-8236-d32edc6942af": {
+    "nazev": "PRAHA: AMERICANO D",
+    "byl_plny": true,
+    "going": 8,
+    "max_cap": 8,
+    "start": "2026-05-19T20:00:00"
+  },
+  "1f8761d5-2438-4f83-a55c-2f2082389ea3": {
+    "nazev": "PRAHA: AMERICANO D",
+    "byl_plny": true,
+    "going": 8,
+    "max_cap": 8,
+    "start": "2026-05-21T18:30:00"
+  },
+  "4122aa2a-a079-4865-8582-bbb9cedcf18a": {
+    "nazev": "PRAHA: AMERICANO C",
+    "byl_plny": true,
+    "going": 8,
+    "max_cap": 8,
+    "start": "2026-05-21T20:30:00"
+  },
+  "60b4aacd-27df-4e55-a1ce-ab44412e0ba4": {
+    "nazev": "PRAHA: AMERICANO C",
+    "byl_plny": true,
+    "going": 8,
+    "max_cap": 8,
+    "start": "2026-05-26T18:30:00"
+  },
+  "c24659b4-e6ef-43f9-bd25-7c7d3227a44d": {
+    "nazev": "PRAHA: AMERICANO D",
+    "byl_plny": true,
+    "going": 8,
+    "max_cap": 8,
+    "start": "2026-05-26T20:00:00"
+  },
+  "c9889990-2862-4bc3-9d7d-bdd3d5de3c0d": {
+    "nazev": "PRAHA: \u26a1 Rating Cup C-Level with Ji\u0159\u00ed  Van\u011bk \u26a1",
+    "byl_plny": false,
+    "going": 16,
+    "max_cap": 28,
+    "start": "2026-05-27T20:00:00"
+  },
+  "126cff69-4fdc-4dc5-a5a2-4a28ad4d63ba": {
+    "nazev": "\ud83c\udfc6 Koller\u2019s King of the Court Switch - Beginner Edition (D-E)\ud83c\udfc6",
+    "byl_plny": false,
+    "going": 24,
+    "max_cap": 28,
+    "start": "2026-05-28T18:30:00"
+  },
+  "9d471daa-c88b-4677-b25a-84ecb20a2caa": {
+    "nazev": "PRAHA: AMERICANO C",
+    "byl_plny": true,
+    "going": 8,
+    "max_cap": 8,
+    "start": "2026-05-28T20:30:00"
+  },
+  "a4248147-4dd5-45d2-87d9-a379da18b90a": {
+    "nazev": "PRAHA: Padel al Dente by L'Osteria: MIX TEAM AMERICANO C-D",
+    "byl_plny": false,
+    "going": 5,
+    "max_cap": 8,
+    "start": "2026-06-05T18:00:00"
+  }
+}
