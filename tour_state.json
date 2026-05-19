@@ -64,15 +64,15 @@
   },
   "dc0e6e11-6b91-4e0f-8556-d50134275386": {
     "nazev": "PRAHA : AMERICANO - C",
-    "byl_plny": false,
-    "going": 6,
+    "byl_plny": true,
+    "going": 8,
     "max_cap": 8,
     "start": "2026-06-02T18:30:00"
   },
   "2b00f166-807b-46ea-bf0a-ea5e044d964c": {
     "nazev": "PRAHA: AMERICANO D",
     "byl_plny": false,
-    "going": 0,
+    "going": 1,
     "max_cap": 8,
     "start": "2026-06-02T20:00:00"
   },
@@ -93,7 +93,7 @@
   "0d08aed6-fd3a-4fec-a684-29ecf589d2af": {
     "nazev": "PRAHA : AMERICANO - C",
     "byl_plny": false,
-    "going": 4,
+    "going": 6,
     "max_cap": 8,
     "start": "2026-06-09T18:30:00"
   },
@@ -114,7 +114,7 @@
   "ae59f182-8d38-4b38-ad73-4002d0fde011": {
     "nazev": "PRAHA : AMERICANO - C",
     "byl_plny": false,
-    "going": 5,
+    "going": 6,
     "max_cap": 8,
     "start": "2026-06-16T18:30:00"
   },
@@ -142,7 +142,7 @@
   "0765bda4-3aec-47a4-82b6-d71de0e572ae": {
     "nazev": "PRAHA: AMERICANO D",
     "byl_plny": false,
-    "going": 0,
+    "going": 1,
     "max_cap": 8,
     "start": "2026-06-23T20:00:00"
   },
@@ -156,14 +156,14 @@
   "a286bfba-0f38-4031-a818-9d35cdf88e85": {
     "nazev": "PRAHA : AMERICANO - C",
     "byl_plny": false,
-    "going": 5,
+    "going": 6,
     "max_cap": 8,
     "start": "2026-06-30T18:30:00"
   },
   "097ecdbe-abc3-4533-9bc9-61f47523db5c": {
     "nazev": "PRAHA: AMERICANO D",
     "byl_plny": false,
-    "going": 0,
+    "going": 1,
     "max_cap": 8,
     "start": "2026-06-30T20:00:00"
   }
