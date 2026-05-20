@@ -30,7 +30,7 @@
   "c9889990-2862-4bc3-9d7d-bdd3d5de3c0d": {
     "nazev": "PRAHA: \u26a1 Rating Cup C-Level with Ji\u0159\u00ed  Van\u011bk \u26a1",
     "byl_plny": false,
-    "going": 15,
+    "going": 16,
     "max_cap": 28,
     "start": "2026-05-27T20:00:00"
   },
@@ -99,8 +99,8 @@
   },
   "af3ad2eb-c7c7-4a01-a833-cde9f2304739": {
     "nazev": "PRAHA: AMERICANO D",
-    "byl_plny": false,
-    "going": 7,
+    "byl_plny": true,
+    "going": 8,
     "max_cap": 8,
     "start": "2026-06-11T18:30:00"
   },
