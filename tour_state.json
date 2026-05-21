@@ -50,8 +50,8 @@
   },
   "94091caa-fffd-4bb8-b054-7f5b8a514ba8": {
     "nazev": "PRAHA: \u26ab\u26aa BLACK & WHITE TOURNAMENT C-D \u26ab\u26aa",
-    "byl_plny": false,
-    "going": 19,
+    "byl_plny": true,
+    "going": 20,
     "max_cap": 20,
     "start": "2026-06-01T12:30:00"
   },
