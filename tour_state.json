@@ -51,7 +51,7 @@
   "94091caa-fffd-4bb8-b054-7f5b8a514ba8": {
     "nazev": "PRAHA: \u26ab\u26aa BLACK & WHITE TOURNAMENT C-D \u26ab\u26aa",
     "byl_plny": false,
-    "going": 0,
+    "going": 8,
     "max_cap": 20,
     "start": "2026-06-01T12:30:00"
   },
@@ -79,7 +79,7 @@
   "de2e3e53-ea76-4b78-a9b0-33f34249dfb1": {
     "nazev": "PRAHA: \ud83c\udf81\ud83c\udfbe TREASURE TOURNAMENT C-D \ud83c\udf81\ud83c\udfbe",
     "byl_plny": false,
-    "going": 1,
+    "going": 4,
     "max_cap": 16,
     "start": "2026-06-04T13:00:00"
   },
