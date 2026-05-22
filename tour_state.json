@@ -50,9 +50,9 @@
   },
   "94091caa-fffd-4bb8-b054-7f5b8a514ba8": {
     "nazev": "PRAHA: \u26ab\u26aa BLACK & WHITE TOURNAMENT C-D \u26ab\u26aa",
-    "byl_plny": true,
+    "byl_plny": false,
     "going": 20,
-    "max_cap": 20,
+    "max_cap": 24,
     "start": "2026-06-01T12:30:00"
   },
   "44a1ac2b-5052-4a20-951d-57294b2a63b6": {
@@ -84,7 +84,7 @@
     "start": "2026-06-04T13:00:00"
   },
   "a4248147-4dd5-45d2-87d9-a379da18b90a": {
-    "nazev": "PRAHA: Padel al Dente by L'Osteria: MIX TEAM AMERICANO C-D",
+    "nazev": "PRAHA: Padel al Dente by L'Osteria: TEAM AMERICANO C-D",
     "byl_plny": true,
     "going": 8,
     "max_cap": 8,
