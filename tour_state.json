@@ -170,14 +170,14 @@
   "3f5ae527-ab3a-45d9-ae78-c426038c477e": {
     "nazev": "PRAHA : Americano D \ud83c\udfbe",
     "byl_plny": false,
-    "going": 6,
+    "going": 7,
     "max_cap": 8,
     "start": "2026-06-25T18:30:00"
   },
   "4928a3ba-97ca-4e85-8e25-601cd54f6653": {
     "nazev": "PRAHA : Americano C \ud83c\udfbe",
     "byl_plny": false,
-    "going": 2,
+    "going": 3,
     "max_cap": 8,
     "start": "2026-06-25T20:30:00"
   },
