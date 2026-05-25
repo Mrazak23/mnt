@@ -97,6 +97,13 @@
     "max_cap": 8,
     "start": "2026-06-05T18:00:00"
   },
+  "31aa4a2e-e8d9-49a4-b98c-eafe715e2524": {
+    "nazev": "PRAHA : \ud83d\udc51 PADEL & BRUNCH D-E \ud83e\udd50",
+    "byl_plny": false,
+    "going": 0,
+    "max_cap": 16,
+    "start": "2026-06-06T09:00:00"
+  },
   "eb967106-25dd-44c2-8c47-08db80f59c55": {
     "nazev": "PRAHA: Padel&Prosecco D \ud83c\udf7e",
     "byl_plny": false,
