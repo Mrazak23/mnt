@@ -48,6 +48,13 @@
     "max_cap": 8,
     "start": "2026-05-28T20:30:00"
   },
+  "4589aa6d-2860-49e5-8bda-94d3309128ef": {
+    "nazev": "PRAHA: TEAM AMERICANO C",
+    "byl_plny": false,
+    "going": 0,
+    "max_cap": 6,
+    "start": "2026-05-30T19:30:00"
+  },
   "94091caa-fffd-4bb8-b054-7f5b8a514ba8": {
     "nazev": "PRAHA: \u26ab\u26aa BLACK & WHITE TOURNAMENT C-D \u26ab\u26aa",
     "byl_plny": true,
