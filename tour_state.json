@@ -1,11 +1,4 @@
 {
-  "c24659b4-e6ef-43f9-bd25-7c7d3227a44d": {
-    "nazev": "PRAHA: AMERICANO D",
-    "byl_plny": true,
-    "going": 8,
-    "max_cap": 8,
-    "start": "2026-05-26T20:00:00"
-  },
   "c9889990-2862-4bc3-9d7d-bdd3d5de3c0d": {
     "nazev": "PRAHA: \u26a1 Rating Cup C-Level with Ji\u0159\u00ed  Van\u011bk \u26a1",
     "byl_plny": false,
@@ -16,7 +9,7 @@
   "126cff69-4fdc-4dc5-a5a2-4a28ad4d63ba": {
     "nazev": "\ud83c\udfc6 Koller\u2019s King of the Court Switch - Beginner Edition (D-E)\ud83c\udfc6",
     "byl_plny": false,
-    "going": 26,
+    "going": 27,
     "max_cap": 28,
     "start": "2026-05-28T18:30:00"
   },
