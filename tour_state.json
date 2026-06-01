@@ -1,8 +1,8 @@
 {
   "44a1ac2b-5052-4a20-951d-57294b2a63b6": {
     "nazev": "PRAHA : TUESDAY AMERICANO C",
-    "byl_plny": false,
-    "going": 12,
+    "byl_plny": true,
+    "going": 13,
     "max_cap": 13,
     "start": "2026-06-02T07:00:00"
   },
@@ -38,7 +38,7 @@
     "nazev": "PRAHA : \ud83d\udc51 PADEL & BRUNCH D-E \ud83e\udd50",
     "byl_plny": false,
     "going": 5,
-    "max_cap": 16,
+    "max_cap": 8,
     "start": "2026-06-06T09:00:00"
   },
   "eb967106-25dd-44c2-8c47-08db80f59c55": {
