@@ -22,8 +22,8 @@
   },
   "de2e3e53-ea76-4b78-a9b0-33f34249dfb1": {
     "nazev": "PRAHA: \ud83c\udf81\ud83c\udfbe TREASURE TOURNAMENT C-D \ud83c\udf81\ud83c\udfbe",
-    "byl_plny": true,
-    "going": 16,
+    "byl_plny": false,
+    "going": 13,
     "max_cap": 16,
     "start": "2026-06-04T13:00:00"
   },
