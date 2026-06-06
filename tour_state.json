@@ -50,8 +50,8 @@
   },
   "09c130d3-6219-4257-8225-41d0a391655b": {
     "nazev": "PRAHA: AMERICANO C",
-    "byl_plny": true,
-    "going": 8,
+    "byl_plny": false,
+    "going": 6,
     "max_cap": 8,
     "start": "2026-06-12T18:30:00"
   },
