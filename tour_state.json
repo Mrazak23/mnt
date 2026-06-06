@@ -22,8 +22,8 @@
   },
   "53a309bd-de96-4d78-afb4-f6a04b690905": {
     "nazev": "PRAHA: AMERICANO D",
-    "byl_plny": false,
-    "going": 7,
+    "byl_plny": true,
+    "going": 8,
     "max_cap": 8,
     "start": "2026-06-09T20:00:00"
   },
