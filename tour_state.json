@@ -1,8 +1,8 @@
 {
   "e97edb33-a2a4-4e08-9a9a-2071103e379e": {
     "nazev": "PRAHA : TUESDAY AMERICANO C",
-    "byl_plny": true,
-    "going": 13,
+    "byl_plny": false,
+    "going": 12,
     "max_cap": 13,
     "start": "2026-06-09T07:00:00"
   },
