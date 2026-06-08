@@ -44,7 +44,7 @@
   "31ccb6db-7719-4f76-aaff-f8f3f3b13b2e": {
     "nazev": "PRAHA : TUESDAY AMERICANO C",
     "byl_plny": false,
-    "going": 8,
+    "going": 9,
     "max_cap": 13,
     "start": "2026-06-16T07:00:00"
   },
@@ -79,7 +79,7 @@
   "cf539bcf-733c-466d-a8e6-9d36378b8ec4": {
     "nazev": "PRAHA : TUESDAY AMERICANO C",
     "byl_plny": false,
-    "going": 5,
+    "going": 6,
     "max_cap": 13,
     "start": "2026-06-23T07:00:00"
   },
