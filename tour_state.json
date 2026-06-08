@@ -106,8 +106,8 @@
   },
   "4928a3ba-97ca-4e85-8e25-601cd54f6653": {
     "nazev": "PRAHA : Americano C \ud83c\udfbe",
-    "byl_plny": false,
-    "going": 7,
+    "byl_plny": true,
+    "going": 8,
     "max_cap": 8,
     "start": "2026-06-25T20:30:00"
   },
