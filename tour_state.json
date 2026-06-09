@@ -58,7 +58,7 @@
   "beb07573-0ab6-46ae-b699-d150789fcf85": {
     "nazev": "PRAHA: LEVEL-UP C with Jorge",
     "byl_plny": false,
-    "going": 1,
+    "going": 2,
     "max_cap": 7,
     "start": "2026-06-19T15:30:00"
   },
@@ -86,7 +86,7 @@
   "cf539bcf-733c-466d-a8e6-9d36378b8ec4": {
     "nazev": "PRAHA : TUESDAY AMERICANO C",
     "byl_plny": false,
-    "going": 6,
+    "going": 5,
     "max_cap": 13,
     "start": "2026-06-23T07:00:00"
   },
@@ -128,7 +128,7 @@
   "00f67736-ed8d-4aae-b583-b0574f97a74d": {
     "nazev": "PRAHA : TUESDAY AMERICANO C",
     "byl_plny": false,
-    "going": 3,
+    "going": 2,
     "max_cap": 13,
     "start": "2026-06-30T07:00:00"
   },
