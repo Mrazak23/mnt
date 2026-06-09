@@ -131,5 +131,12 @@
     "going": 8,
     "max_cap": 8,
     "start": "2026-06-30T20:00:00"
+  },
+  "445e1c33-3bc2-403f-9c36-fb29e3291aa0": {
+    "nazev": "\ud83c\udfc6 Koller\u2019s King of the Court Switch - Beginner Edition (D-E)\ud83c\udfc6 (copy)",
+    "byl_plny": false,
+    "going": 0,
+    "max_cap": 28,
+    "start": "2026-07-23T17:30:00"
   }
 }
