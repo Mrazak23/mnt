@@ -22,15 +22,15 @@
   },
   "6c0a354b-20b2-445d-8a24-3defb9323e7f": {
     "nazev": "PRAHA: AMERICANO C",
-    "byl_plny": true,
-    "going": 8,
+    "byl_plny": false,
+    "going": 7,
     "max_cap": 8,
     "start": "2026-06-11T20:30:00"
   },
   "09c130d3-6219-4257-8225-41d0a391655b": {
     "nazev": "PRAHA: AMERICANO C",
-    "byl_plny": true,
-    "going": 8,
+    "byl_plny": false,
+    "going": 7,
     "max_cap": 8,
     "start": "2026-06-12T18:30:00"
   },
@@ -55,6 +55,13 @@
     "max_cap": 8,
     "start": "2026-06-16T20:00:00"
   },
+  "beb07573-0ab6-46ae-b699-d150789fcf85": {
+    "nazev": "PRAHA: LEVEL-UP C with Jorge",
+    "byl_plny": false,
+    "going": 1,
+    "max_cap": 7,
+    "start": "2026-06-19T15:30:00"
+  },
   "c7224e9a-b3a0-45f8-90a8-d63eda51c6e0": {
     "nazev": "PRAHA: TEAM AMERICANO D-E",
     "byl_plny": false,
@@ -70,7 +77,7 @@
     "start": "2026-06-21T19:00:00"
   },
   "1195636c-a873-44e6-ae9f-10a11407c249": {
-    "nazev": "PRAHA: TACTICAL TRAINIG C with Jorge (copy)",
+    "nazev": "PRAHA: TACTICAL TRAINIG C with Jorge",
     "byl_plny": false,
     "going": 0,
     "max_cap": 3,
