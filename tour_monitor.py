@@ -22,22 +22,34 @@ DNI_DOPREDU = 60
 
 DNY = ["Pondělí", "Úterý", "Středa", "Čtvrtek", "Pátek", "Sobota", "Neděle"]
 
-# Filtr nazvu (uroven C/D, vyloucit rana/obedy/ladies/smisene B-C atd.)
-VYLOUCENA_SLOVA = ["MORNING", "LUNCH", "LADIES", "B-C", "B\u2013C", "C-B", "C\u2013B"]
+# Filtr nazvu
+#  - uroven C/D zapsana pismenem (puvodni chovani)
+#  - ratingove americana: Beginners / Intermediates
+#  - vylouceno (ma prednost): rana/obedy/ladies, smisene B-C/C-B,
+#    a dale Starters a High Intermediates (i v kombinaci typu
+#    "Starters & Beginners" nebo "Intermediates + High Intermediates")
+VYLOUCENA_SLOVA = ["MORNING", "LUNCH", "LADIES", "B-C", "B\u2013C", "C-B", "C\u2013B",
+                   "STARTER", "HIGH INTERMEDIATE"]
 LEVEL_PATTERN   = re.compile(r'\b([A-E])(?:-([A-E]))?\b')
 ZAJIMAVE_UROVNE = {"C", "D"}
+ZAJIMAVA_SLOVA  = ["BEGINNER", "INTERMEDIATE"]
 
 
 def zajima_me(nazev):
     n = nazev.upper()
+    # vyloucene slovo kdekoli v nazvu -> ihned pryc (ma prednost pred zajimavymi)
     if any(s in n for s in VYLOUCENA_SLOVA):
         return False
+    # uroven C/D zapsana pismenem
     for m in LEVEL_PATTERN.finditer(n):
         urovne = {m.group(1)}
         if m.group(2):
             urovne.add(m.group(2))
         if urovne & ZAJIMAVE_UROVNE:
             return True
+    # ratingove americana (Starters a High Intermediates uz jsou vyloucene vyse)
+    if any(s in n for s in ZAJIMAVA_SLOVA):
+        return True
     return False
 
 
