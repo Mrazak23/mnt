@@ -130,7 +130,7 @@ def nacist_stav():
     return obsah, data["sha"]
 
 
-def ulozit_stav(stav, sha):
+def ulozit_stav(stav, sha, pokus=0):
     obsah_b64 = base64.b64encode(json.dumps(stav).encode()).decode()
     payload   = {"message": "update state", "content": obsah_b64}
     if sha:
@@ -146,8 +146,20 @@ def ulozit_stav(stav, sha):
     )
     if r.status_code in (200, 201):
         print("Stav ulozen")
-    else:
-        print(f"Chyba ukladani stavu: {r.status_code} {r.text[:200]}")
+        return
+    # 409 = mezitim zapsal jiny beh; nacti cerstvy stav, sluc oznameno a zkus znovu
+    if r.status_code == 409 and pokus < 3:
+        print(f"  Konflikt pri ukladani, slucuji a zkousim znovu (pokus {pokus + 1})")
+        cerstvy, novy_sha = nacist_stav()
+        sloucene = set(stav.get("oznameno", [])) | set(cerstvy.get("oznameno", []))
+        vsechny = set()
+        for ids in stav.get("aktualni", {}).values():
+            vsechny.update(ids)
+        if vsechny:
+            sloucene = sloucene & vsechny
+        stav2 = {"oznameno": list(sloucene), "aktualni": stav.get("aktualni", {})}
+        return ulozit_stav(stav2, novy_sha, pokus + 1)
+    print(f"Chyba ukladani stavu: {r.status_code} {r.text[:200]}")
 
 
 def spustit():
