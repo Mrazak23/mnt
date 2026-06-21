@@ -1,10 +1,8 @@
 import requests
 import json
 import os
+import base64
 from datetime import datetime, timedelta
-
-EMAIL   = os.environ["SERVICE_EMAIL"]
-HESLO   = os.environ["SERVICE_PASSWORD"]
 
 TELEGRAM_TOKEN   = os.environ["TELEGRAM_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
@@ -13,120 +11,106 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 GITHUB_REPO  = os.environ["GITHUB_REPOSITORY"]
 STATE_FILE   = "state.json"
 
+# Okno: vsedni dny, cas startu 17:00-20:59
 CAS_OD = 17
 CAS_DO = 21
+POCET_DNI = 15
 
-LOCATION_ID  = os.environ["SERVICE_LOCATION_ID"]
-RES_TYPE_ID  = int(os.environ["SERVICE_RES_TYPE_ID"])
-FED_ID       = os.environ["SERVICE_FED_ID"]
-ORG_ID       = os.environ["SERVICE_ORG_ID"]
-CLUB_ID      = os.environ["SERVICE_CLUB_ID"]
-API_BASE_URL = os.environ["SERVICE_API_URL"]
-BOOKING_URL  = os.environ["SERVICE_BOOKING_URL"]
-MISTO_NAZEV  = os.environ["SERVICE_LOCATION_NAME"]
+API_URL     = os.environ["SERVICE_API_URL"]      # https://api.padelos.co
+COMPANY_ID  = os.environ["SERVICE_COMPANY_ID"]   # 217
+CLUB_ID     = os.environ["SERVICE_CLUB_ID"]      # 216927
+DOMAIN      = os.environ["SERVICE_DOMAIN"]       # PADELOSCO
+BOOKING_URL = os.environ["SERVICE_BOOKING_URL"]  # https://player.padelos.co/company/217?clubIds=216927&locale=cs
 
-token        = None
-token_expiry = None
 
-def pripojit():
-    global token, token_expiry
+def hlavicky():
+    return {
+        "accept": "application/json, text/plain, */*",
+        "content-type": "application/json",
+        "origin": "https://player.padelos.co",
+        "referer": "https://player.padelos.co/",
+        "x-clubos-channel": "CLUBOS-WEB",
+        "x-clubos-company": COMPANY_ID,
+        "x-clubos-club-info": CLUB_ID,
+        "x-clubos-domain": DOMAIN,
+    }
+
+
+def dny_dopredu():
+    dnes = datetime.now().date()
+    vysledek = []
+    for i in range(POCET_DNI):
+        den = dnes + timedelta(days=i)
+        if den.weekday() < 5:  # po-pa
+            vysledek.append(den.strftime("%Y-%m-%d"))
+    return vysledek
+
+
+def ziskat_sloty(datum):
     r = requests.post(
-        f"{API_BASE_URL}/foys/api/v1/token",
-        headers={
-            "accept": "application/json",
-            "content-type": "application/x-www-form-urlencoded",
-            "x-federationid": FED_ID,
-            "x-organisationid": ORG_ID,
-        },
-        data={
-            "grant_type": "password",
-            "username": EMAIL,
-            "password": HESLO,
-            "clubId": CLUB_ID,
+        f"{API_URL}/customers/searchByDate",
+        headers=hlavicky(),
+        json={
+            "date": datum,
+            "sport": "padel",
+            "courtType": "",
+            "courtSize": "",
+            "courtTurf": "",
+            "courtFeature": "",
+            "searchTerm": "",
+            "limit": "",
+            "offset": "",
+            "type": "",
         },
         timeout=15,
     )
     if r.status_code != 200:
-        raise Exception(f"Připojení selhalo: {r.status_code} {r.text[:200]}")
-    data = r.json()
-    token = data.get("access_token") or data.get("token") or data.get("accessToken")
-    expires_in   = data.get("expires_in", 82800)
-    token_expiry = datetime.now() + timedelta(seconds=expires_in - 3600)
-    print("Připojení OK")
-
-def hlavicky():
-    if token is None or datetime.now() >= token_expiry:
-        pripojit()
-    return {
-        "accept": "application/json",
-        "authorization": f"Bearer {token}",
-        "content-type": "application/json",
-        "x-federationid": FED_ID,
-        "x-organisationid": ORG_ID,
-    }
-
-def dny_dopredu():
-    dnes    = datetime.now().date()
-    vysledek = []
-    for i in range(15):
-        den = dnes + timedelta(days=i)
-        if den.weekday() < 5:
-            vysledek.append(den.strftime("%Y-%m-%d"))
-    return vysledek
-
-def ziskat_sloty(datum):
-    r = requests.get(
-        f"{API_BASE_URL}/court-booking/public/api/v1/locations/search",
-        headers=hlavicky(),
-        params=[
-            ("reservationTypeId", RES_TYPE_ID),
-            ("locationId", LOCATION_ID),
-            ("playingTimes[]", 60),
-            ("playingTimes[]", 90),
-            ("playingTimes[]", 120),
-            ("date", f"{datum}T00:00"),
-        ],
-        timeout=10,
-    )
-    if r.status_code == 401:
-        pripojit()
-        return ziskat_sloty(datum)
-    if r.status_code != 200:
-        print(f"Chyba API pro {datum}: {r.status_code}")
+        print(f"Chyba API pro {datum}: {r.status_code} {r.text[:150]}")
         return []
 
-    data  = r.json()
-    volne = []
+    data = r.json().get("data", [])
+    # Deduplikace: jeden zaznam na kurt + cas startu (slouci delky 60/90/120),
+    # u ceny si drzime nejnizsi (= nejkratsi dostupna delka).
+    najdene = {}
     for lokace in data:
-        for kurt in lokace.get("inventoryItemsTimeSlots", []):
-            kurt_nazev = kurt.get("name", "?")
-            for slot in kurt.get("timeSlots", []):
-                if not slot.get("isAvailable", False):
-                    continue
-                cas_raw = slot.get("startTime", "")
+        for blok in lokace.get("availability", []):
+            for slot in blok.get("slots", []):
+                start = slot.get("startTime", "")
                 try:
-                    hodina = int(cas_raw.split("T")[1][:2])
-                except:
-                    hodina = -1
-                if CAS_OD <= hodina < CAS_DO:
-                    volne.append({
-                        "cas":   cas_raw,
-                        "kurt":  kurt_nazev,
-                        "delka": slot.get("duration", "?"),
-                        "cena":  slot.get("price", "?"),
-                        "id":    f"{kurt.get('id')}-{cas_raw}-{slot.get('duration')}",
-                    })
-    return volne
+                    hodina = int(start[:2])
+                except (ValueError, IndexError):
+                    continue
+                if not (CAS_OD <= hodina < CAS_DO):
+                    continue
+                slot_datum = slot.get("date", datum)
+                for kurt in slot.get("courts", []):
+                    kid  = kurt.get("id")
+                    klic = f"{slot_datum}|{start}|{kid}"
+                    try:
+                        cena = float(kurt.get("price", 0))
+                    except (ValueError, TypeError):
+                        cena = 0.0
+                    if klic not in najdene or cena < najdene[klic]["cena"]:
+                        najdene[klic] = {
+                            "id":   klic,
+                            "cas":  start,
+                            "kurt": kurt.get("name", "?"),
+                            "cena": cena,
+                        }
+    return list(najdene.values())
+
 
 def poslat_zpravu(text):
     if len(text) > 4000:
-        text = text[:4000] + "\n...(zkráceno)"
+        text = text[:4000] + "\n...(zkraceno)"
     r = requests.post(
         f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
-        json={"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "HTML"},
+        json={"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "HTML",
+              "disable_web_page_preview": True},
         timeout=10,
     )
-    print(f"Zpráva odeslána: {r.status_code}")
+    print(f"Zprava odeslana: {r.status_code}")
+
 
 def nacist_stav():
     r = requests.get(
@@ -140,14 +124,13 @@ def nacist_stav():
     if r.status_code == 404:
         return {"oznameno": [], "aktualni": {}}, None
     data = r.json()
-    import base64
     obsah = json.loads(base64.b64decode(data["content"]).decode())
     if "oznameno" not in obsah:
         obsah = {"oznameno": [], "aktualni": obsah}
     return obsah, data["sha"]
 
+
 def ulozit_stav(stav, sha):
-    import base64
     obsah_b64 = base64.b64encode(json.dumps(stav).encode()).decode()
     payload   = {"message": "update state", "content": obsah_b64}
     if sha:
@@ -162,21 +145,21 @@ def ulozit_stav(stav, sha):
         timeout=10,
     )
     if r.status_code in (200, 201):
-        print("Stav uložen")
+        print("Stav ulozen")
     else:
-        print(f"Chyba ukládání stavu: {r.status_code} {r.text[:200]}")
+        print(f"Chyba ukladani stavu: {r.status_code} {r.text[:200]}")
+
 
 def spustit():
     print(f"Kontrola: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
-    pripojit()
 
-    stav, sha    = nacist_stav()
-    uz_oznameno  = set(stav.get("oznameno", []))
-    aktualni     = {}
+    stav, sha   = nacist_stav()
+    uz_oznameno = set(stav.get("oznameno", []))
+    aktualni    = {}
 
     for datum in dny_dopredu():
         try:
-            sloty       = ziskat_sloty(datum)
+            sloty        = ziskat_sloty(datum)
             aktualni_ids = {s["id"] for s in sloty}
             aktualni[datum] = list(aktualni_ids)
 
@@ -184,22 +167,23 @@ def spustit():
 
             if nove_ids:
                 nove_sloty = [s for s in sloty if s["id"] in nove_ids]
+                nove_sloty.sort(key=lambda x: (x["cas"], x["kurt"]))
                 radky = "\n".join(
-                    f"{s['cas'][11:16]}  {s['kurt']}  ({s['delka']} min)  {s['cena']} Kč"
+                    f"{s['cas']}  {s['kurt']}  od {int(s['cena'])} Kč"
                     for s in nove_sloty
                 )
                 datum_dt  = datetime.strptime(datum, "%Y-%m-%d")
                 dny       = ["Pondělí", "Úterý", "Středa", "Čtvrtek", "Pátek", "Sobota", "Neděle"]
                 den_nazev = dny[datum_dt.weekday()]
                 datum_cz  = datum_dt.strftime("%d.%m.%Y")
-                odkaz     = f"{BOOKING_URL}?location={MISTO_NAZEV}&date={datum}"
-                zprava    = f"🎾 <b>Uvolnil se kurt!</b>\n\n📅 {den_nazev} {datum_cz}\n\n{radky}\n\n👉 {odkaz}"
+                zprava    = (f"\U0001F3BE <b>Uvolnil se kurt!</b>\n\n"
+                             f"\U0001F4C5 {den_nazev} {datum_cz}\n\n{radky}\n\n\U0001F449 {BOOKING_URL}")
                 poslat_zpravu(zprava)
-                print(f"  {datum}: {len(nove_ids)} NOVÝCH slotů, notifikace odeslána!")
+                print(f"  {datum}: {len(nove_ids)} NOVYCH slotu, notifikace odeslana!")
                 for s in nove_sloty:
                     uz_oznameno.add(s["id"])
             else:
-                print(f"  {datum}: {len(sloty)} volných, žádná změna")
+                print(f"  {datum}: {len(sloty)} volnych, zadna zmena")
 
         except Exception as e:
             print(f"  Chyba pro {datum}: {e}")
@@ -211,6 +195,7 @@ def spustit():
 
     ulozit_stav({"oznameno": list(uz_oznameno), "aktualni": aktualni}, sha)
     print("Hotovo.")
+
 
 if __name__ == "__main__":
     spustit()
