@@ -20,15 +20,12 @@ jobs:
       - name: Run monitor
         run: python tour_monitor.py
         env:
-          TELEGRAM_TOKEN:        ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID:      ${{ secrets.TELEGRAM_CHAT_ID }}
-          GITHUB_TOKEN:          ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY:     ${{ github.repository }}
-          SERVICE_EMAIL:    ${{ secrets.SERVICE_EMAIL }}
-          SERVICE_PASSWORD: ${{ secrets.SERVICE_PASSWORD }}
-          SERVICE_API_URL:       ${{ secrets.SERVICE_API_URL }}
-          SERVICE_ORG_ID:        ${{ secrets.SERVICE_ORG_ID }}
-          SERVICE_FED_ID:        ${{ secrets.SERVICE_FED_ID }}
-          SERVICE_CLUB_ID:       ${{ secrets.SERVICE_CLUB_ID }}
-          SERVICE_LOCATION_ID:   ${{ secrets.SERVICE_LOCATION_ID }}
-          SERVICE_EVENT_URL:     ${{ secrets.SERVICE_EVENT_URL }}
+          TELEGRAM_TOKEN:      ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID:    ${{ secrets.TELEGRAM_CHAT_ID }}
+          GITHUB_TOKEN:        ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY:   ${{ github.repository }}
+          SERVICE_API_URL:     ${{ secrets.SERVICE_API_URL }}
+          SERVICE_COMPANY_ID:  ${{ secrets.SERVICE_COMPANY_ID }}
+          SERVICE_CLUB_ID:     ${{ secrets.SERVICE_CLUB_ID }}
+          SERVICE_DOMAIN:      ${{ secrets.SERVICE_DOMAIN }}
+          SERVICE_EVENT_URL:   ${{ secrets.SERVICE_EVENT_URL }}
