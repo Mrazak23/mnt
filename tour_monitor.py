@@ -3,6 +3,7 @@ import re
 import json
 import base64
 import requests
+from urllib.parse import quote
 from datetime import datetime, timezone, timedelta
 
 # Konfigurace
@@ -15,7 +16,9 @@ API_URL    = os.environ["SERVICE_API_URL"]     # https://api.padelos.co
 COMPANY_ID = os.environ["SERVICE_COMPANY_ID"]  # 217
 CLUB_ID    = os.environ["SERVICE_CLUB_ID"]     # 216927
 DOMAIN     = os.environ["SERVICE_DOMAIN"]      # PADELOSCO
-EVENT_URL  = os.environ["SERVICE_EVENT_URL"]   # https://player.padelos.co/company/217/tournaments?clubIds=216927&locale=cs
+
+# Odkaz na detail konkretniho turnaje (id + nazev se doplni za behu)
+DETAIL_URL = f"https://player.padelos.co/club/{CLUB_ID}/tournaments/tournament-detail"
 
 STATE_FILE  = "tour_state.json"
 DNI_DOPREDU = 60
@@ -189,11 +192,12 @@ def spustit():
         print(f"  {nazev}: zbyva {zbyva} mist ({datum} {cas})")
 
         if tid not in videno_drive:
+            odkaz = f"{DETAIL_URL}?tournamentId={tid}&name={quote(nazev)}"
             zprava = (f"\U0001F3BE <b>Volné místo na turnaji!</b>\n\n"
                       f"<b>{nazev}</b>\n"
                       f"\U0001F4C5 {datum}  \u23F0 {cas}\n"
                       f"\U0001F465 Volných míst: {zbyva}\n\n"
-                      f"\U0001F449 {EVENT_URL}")
+                      f"\U0001F449 {odkaz}")
             poslat_zpravu(zprava)
             print("  -> notifikace odeslana!")
 
