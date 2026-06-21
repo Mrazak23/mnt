@@ -20,16 +20,11 @@ jobs:
       - name: Run monitor
         run: python monitor.py
         env:
-          GITHUB_TOKEN:          ${{ secrets.GITHUB_TOKEN }}
-          SERVICE_EMAIL:    ${{ secrets.SERVICE_EMAIL }}
-          SERVICE_PASSWORD: ${{ secrets.SERVICE_PASSWORD }}
-          TELEGRAM_TOKEN:        ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID:      ${{ secrets.TELEGRAM_CHAT_ID }}
-          SERVICE_API_URL:       ${{ secrets.SERVICE_API_URL }}
-          SERVICE_BOOKING_URL:   ${{ secrets.SERVICE_BOOKING_URL }}
-          SERVICE_LOCATION_NAME: ${{ secrets.SERVICE_LOCATION_NAME }}
-          SERVICE_LOCATION_ID:   ${{ secrets.SERVICE_LOCATION_ID }}
-          SERVICE_RES_TYPE_ID:   ${{ secrets.SERVICE_RES_TYPE_ID }}
-          SERVICE_FED_ID:        ${{ secrets.SERVICE_FED_ID }}
-          SERVICE_ORG_ID:        ${{ secrets.SERVICE_ORG_ID }}
-          SERVICE_CLUB_ID:       ${{ secrets.SERVICE_CLUB_ID }}
+          GITHUB_TOKEN:        ${{ secrets.GITHUB_TOKEN }}
+          TELEGRAM_TOKEN:      ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID:    ${{ secrets.TELEGRAM_CHAT_ID }}
+          SERVICE_API_URL:     ${{ secrets.SERVICE_API_URL }}
+          SERVICE_COMPANY_ID:  ${{ secrets.SERVICE_COMPANY_ID }}
+          SERVICE_CLUB_ID:     ${{ secrets.SERVICE_CLUB_ID }}
+          SERVICE_DOMAIN:      ${{ secrets.SERVICE_DOMAIN }}
+          SERVICE_BOOKING_URL: ${{ secrets.SERVICE_BOOKING_URL }}
