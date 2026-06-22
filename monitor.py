@@ -16,6 +16,9 @@ CAS_OD = 17
 CAS_DO = 21
 POCET_DNI = 15
 
+# Hlidat jen tyto delky (minuty). Pro vsechny daej: {"60", "90", "120"}
+POVOLENE_DELKY = {"90", "120"}
+
 API_URL     = os.environ["SERVICE_API_URL"]      # https://api.padelos.co
 COMPANY_ID  = os.environ["SERVICE_COMPANY_ID"]   # 217
 CLUB_ID     = os.environ["SERVICE_CLUB_ID"]      # 216927
@@ -74,6 +77,8 @@ def ziskat_sloty(datum):
     for lokace in data:
         for blok in lokace.get("availability", []):
             delka = str(blok.get("duration", ""))
+            if delka not in POVOLENE_DELKY:
+                continue
             for slot in blok.get("slots", []):
                 start = slot.get("startTime", "")
                 try:
@@ -187,9 +192,8 @@ def spustit():
                 dny       = ["Pondělí", "Úterý", "Středa", "Čtvrtek", "Pátek", "Sobota", "Neděle"]
                 den_nazev = dny[datum_dt.weekday()]
                 datum_cz  = datum_dt.strftime("%d.%m.%Y")
-                odkaz     = f"{BOOKING_URL}&date={datum}"
                 zprava    = (f"\U0001F3BE <b>Uvolnil se kurt!</b>\n\n"
-                             f"\U0001F4C5 {den_nazev} {datum_cz}\n\n{radky}\n\n\U0001F449 {odkaz}")
+                             f"\U0001F4C5 {den_nazev} {datum_cz}\n\n{radky}\n\n\U0001F449 {BOOKING_URL}")
                 poslat_zpravu(zprava)
                 print(f"  {datum}: {len(nove_ids)} NOVYCH slotu, notifikace odeslana!")
                 for s in nove_sloty:
