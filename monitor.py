@@ -69,11 +69,11 @@ def ziskat_sloty(datum):
         return []
 
     data = r.json().get("data", [])
-    # Deduplikace: jeden zaznam na kurt + cas startu (slouci delky 60/90/120),
-    # u ceny si drzime nejnizsi (= nejkratsi dostupna delka).
-    najdene = {}
+    # Kazda kombinace kurt + cas + delka je samostatna moznost (vcetne ceny).
+    sloty = []
     for lokace in data:
         for blok in lokace.get("availability", []):
+            delka = str(blok.get("duration", ""))
             for slot in blok.get("slots", []):
                 start = slot.get("startTime", "")
                 try:
@@ -84,20 +84,19 @@ def ziskat_sloty(datum):
                     continue
                 slot_datum = slot.get("date", datum)
                 for kurt in slot.get("courts", []):
-                    kid  = kurt.get("id")
-                    klic = f"{slot_datum}|{start}|{kid}"
+                    kid = kurt.get("id")
                     try:
-                        cena = float(kurt.get("price", 0))
+                        cena = int(round(float(kurt.get("price", 0))))
                     except (ValueError, TypeError):
-                        cena = 0.0
-                    if klic not in najdene or cena < najdene[klic]["cena"]:
-                        najdene[klic] = {
-                            "id":   klic,
-                            "cas":  start,
-                            "kurt": kurt.get("name", "?"),
-                            "cena": cena,
-                        }
-    return list(najdene.values())
+                        cena = 0
+                    sloty.append({
+                        "id":    f"{slot_datum}|{start}|{kid}|{delka}",
+                        "cas":   start,
+                        "kurt":  kurt.get("name", "?"),
+                        "delka": delka,
+                        "cena":  cena,
+                    })
+    return sloty
 
 
 def poslat_zpravu(text):
@@ -179,17 +178,18 @@ def spustit():
 
             if nove_ids:
                 nove_sloty = [s for s in sloty if s["id"] in nove_ids]
-                nove_sloty.sort(key=lambda x: (x["cas"], x["kurt"]))
+                nove_sloty.sort(key=lambda x: (x["cas"], x["kurt"], int(x["delka"] or 0)))
                 radky = "\n".join(
-                    f"{s['cas']}  {s['kurt']}  od {int(s['cena'])} Kč"
+                    f"{s['cas']}  {s['kurt']}  {s['delka']} min  {s['cena']} Kč"
                     for s in nove_sloty
                 )
                 datum_dt  = datetime.strptime(datum, "%Y-%m-%d")
                 dny       = ["Pondělí", "Úterý", "Středa", "Čtvrtek", "Pátek", "Sobota", "Neděle"]
                 den_nazev = dny[datum_dt.weekday()]
                 datum_cz  = datum_dt.strftime("%d.%m.%Y")
+                odkaz     = f"{BOOKING_URL}&date={datum}"
                 zprava    = (f"\U0001F3BE <b>Uvolnil se kurt!</b>\n\n"
-                             f"\U0001F4C5 {den_nazev} {datum_cz}\n\n{radky}\n\n\U0001F449 {BOOKING_URL}")
+                             f"\U0001F4C5 {den_nazev} {datum_cz}\n\n{radky}\n\n\U0001F449 {odkaz}")
                 poslat_zpravu(zprava)
                 print(f"  {datum}: {len(nove_ids)} NOVYCH slotu, notifikace odeslana!")
                 for s in nove_sloty:
