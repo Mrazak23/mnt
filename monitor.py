@@ -2,7 +2,7 @@ import requests
 import json
 import os
 import base64
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 TELEGRAM_TOKEN   = os.environ["TELEGRAM_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
@@ -18,6 +18,10 @@ POCET_DNI = 15
 
 # Hlidat jen tyto delky (minuty). Pro vsechny daej: {"60", "90", "120"}
 POVOLENE_DELKY = {"90", "120"}
+
+# Jak dlouho (hodiny) si pamatovat oznameny slot i kdyz docasne zmizi z API.
+# Brani duplicitnim notifikacim, kdyz API "blika".
+GRACE_HODIN = 6
 
 API_URL     = os.environ["SERVICE_API_URL"]      # https://api.padelos.co
 COMPANY_ID  = os.environ["SERVICE_COMPANY_ID"]   # 217
@@ -126,16 +130,26 @@ def nacist_stav():
         timeout=10,
     )
     if r.status_code == 404:
-        return {"oznameno": [], "aktualni": {}}, None
-    data = r.json()
+        return {"videno": {}}, None
+    data  = r.json()
     obsah = json.loads(base64.b64decode(data["content"]).decode())
-    if "oznameno" not in obsah:
-        obsah = {"oznameno": [], "aktualni": obsah}
     return obsah, data["sha"]
 
 
-def ulozit_stav(stav, sha, pokus=0):
-    obsah_b64 = base64.b64encode(json.dumps(stav).encode()).decode()
+def _videno_z_obsahu(obsah):
+    """Vrati slovnik {slot_id: ISO cas naposledy videno}.
+    Zvlada i stary format (oznameno jako seznam) -> bere ho jako videno ted."""
+    if isinstance(obsah.get("videno"), dict):
+        return dict(obsah["videno"])
+    nyni = datetime.now(timezone.utc).isoformat()
+    stare = obsah.get("oznameno", [])
+    if isinstance(stare, list):
+        return {sid: nyni for sid in stare}
+    return {}
+
+
+def ulozit_stav(videno, sha, pokus=0):
+    obsah_b64 = base64.b64encode(json.dumps({"videno": videno}).encode()).decode()
     payload   = {"message": "update state", "content": obsah_b64}
     if sha:
         payload["sha"] = sha
@@ -151,35 +165,35 @@ def ulozit_stav(stav, sha, pokus=0):
     if r.status_code in (200, 201):
         print("Stav ulozen")
         return
-    # 409 = mezitim zapsal jiny beh; nacti cerstvy stav, sluc oznameno a zkus znovu
+    # 409 = mezitim zapsal jiny beh; nacti cerstvy stav, sluc a zkus znovu
     if r.status_code == 409 and pokus < 3:
         print(f"  Konflikt pri ukladani, slucuji a zkousim znovu (pokus {pokus + 1})")
         cerstvy, novy_sha = nacist_stav()
-        sloucene = set(stav.get("oznameno", [])) | set(cerstvy.get("oznameno", []))
-        vsechny = set()
-        for ids in stav.get("aktualni", {}).values():
-            vsechny.update(ids)
-        if vsechny:
-            sloucene = sloucene & vsechny
-        stav2 = {"oznameno": list(sloucene), "aktualni": stav.get("aktualni", {})}
-        return ulozit_stav(stav2, novy_sha, pokus + 1)
+        cerstve_videno = _videno_z_obsahu(cerstvy)
+        # sjednoceni: u kazdeho slotu drz pozdejsi cas
+        for sid, ts in cerstve_videno.items():
+            if sid not in videno or ts > videno[sid]:
+                videno[sid] = ts
+        return ulozit_stav(videno, novy_sha, pokus + 1)
     print(f"Chyba ukladani stavu: {r.status_code} {r.text[:200]}")
 
 
 def spustit():
     print(f"Kontrola: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
 
-    stav, sha   = nacist_stav()
-    uz_oznameno = set(stav.get("oznameno", []))
-    aktualni    = {}
+    stav, sha = nacist_stav()
+    videno    = _videno_z_obsahu(stav)   # {slot_id: ISO cas naposledy videno}
+
+    nyni     = datetime.now(timezone.utc)
+    nyni_iso = nyni.isoformat()
 
     for datum in dny_dopredu():
         try:
             sloty        = ziskat_sloty(datum)
             aktualni_ids = {s["id"] for s in sloty}
-            aktualni[datum] = list(aktualni_ids)
 
-            nove_ids = aktualni_ids - uz_oznameno
+            # nove = slot, ktery aktualne NEznam (jeste neni ve videno)
+            nove_ids = aktualni_ids - set(videno.keys())
 
             if nove_ids:
                 nove_sloty = [s for s in sloty if s["id"] in nove_ids]
@@ -196,20 +210,21 @@ def spustit():
                              f"\U0001F4C5 {den_nazev} {datum_cz}\n\n{radky}\n\n\U0001F449 {BOOKING_URL}")
                 poslat_zpravu(zprava)
                 print(f"  {datum}: {len(nove_ids)} NOVYCH slotu, notifikace odeslana!")
-                for s in nove_sloty:
-                    uz_oznameno.add(s["id"])
             else:
                 print(f"  {datum}: {len(sloty)} volnych, zadna zmena")
+
+            # u vsech aktualne dostupnych slotu obnov cas "naposledy videno"
+            for sid in aktualni_ids:
+                videno[sid] = nyni_iso
 
         except Exception as e:
             print(f"  Chyba pro {datum}: {e}")
 
-    vsechny_aktualni = set()
-    for ids in aktualni.values():
-        vsechny_aktualni.update(ids)
-    uz_oznameno = uz_oznameno & vsechny_aktualni
+    # zapomen sloty, ktere uz GRACE_HODIN nebyly videt (uplne zmizely)
+    mez = (nyni - timedelta(hours=GRACE_HODIN)).isoformat()
+    videno = {sid: ts for sid, ts in videno.items() if ts >= mez}
 
-    ulozit_stav({"oznameno": list(uz_oznameno), "aktualni": aktualni}, sha)
+    ulozit_stav(videno, sha)
     print("Hotovo.")
 
 
