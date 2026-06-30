@@ -78,7 +78,7 @@ def ziskat_turnaje():
             "sport": "Padel",
             "format": "",
             "category": "",
-            "hideFilters": "registration_closed,sold_out",
+            "hideFilters": "registration_closed",
             "page": "",
         },
         timeout=20,
@@ -120,12 +120,15 @@ def nacist_stav():
         timeout=10,
     )
     if r.status_code == 404:
-        return {"videno": []}, None
+        # uplne prvni beh -> seed bez notifikaci
+        return {"turnaje": {}, "prvni_beh": True}, None
     data  = r.json()
     obsah = json.loads(base64.b64decode(data["content"]).decode())
-    if "videno" not in obsah:
-        obsah = {"videno": []}
-    return obsah, data["sha"]
+    if isinstance(obsah.get("turnaje"), dict):
+        # novy format {tid: zbyva}
+        return {"turnaje": obsah["turnaje"], "prvni_beh": False}, data["sha"]
+    # stary format {"videno": [ids]} -> migrace, tento beh jen nastype stav, neflooduje
+    return {"turnaje": {}, "prvni_beh": True}, data["sha"]
 
 
 def ulozit_stav(stav, sha, pokus=0):
@@ -161,10 +164,14 @@ def spustit():
     dnes  = datetime.now(timezone.utc).date()
     konec = dnes + timedelta(days=DNI_DOPREDU)
 
-    stav, sha    = nacist_stav()
-    videno_drive = set(stav.get("videno", []))
-    aktualni_ids = []
-    preskoceno   = 0
+    stav, sha = nacist_stav()
+    zname     = stav["turnaje"]      # {tid: posledni znamy pocet volnych mist}
+    prvni_beh = stav["prvni_beh"]    # True = jen nastype stav, neposila notifikace
+    novy_stav  = {}
+    preskoceno = 0
+
+    if prvni_beh:
+        print("PRVNI BEH / migrace formatu -> jen nastype stav, notifikace se neposilaji.")
 
     for t in turnaje:
         tid   = str(t.get("id", ""))
@@ -180,30 +187,49 @@ def spustit():
                 continue
         except ValueError:
             pass
+        if not t.get("isRegistrationOpen", True):
+            continue
         try:
             zbyva = int(t.get("remainingSlots", 0))
         except (ValueError, TypeError):
             zbyva = 1
-        if zbyva <= 0 or not t.get("isRegistrationOpen", True):
-            continue
 
-        aktualni_ids.append(tid)
+        # zapamatuj si aktualni stav turnaje (i plneho)
+        drive = zname.get(tid)            # None = nikdy nevideny turnaj
+        novy_stav[tid] = zbyva
+
         datum, cas = formatovat(t)
         print(f"  {nazev}: zbyva {zbyva} mist ({datum} {cas})")
 
-        if tid not in videno_drive:
-            odkaz = f"{DETAIL_URL}?tournamentId={tid}&name={quote(nazev)}"
+        if prvni_beh:
+            continue
+
+        odkaz = f"{DETAIL_URL}?tournamentId={tid}&name={quote(nazev)}"
+
+        if drive is None:
+            # uplne novy turnaj v listingu
+            volno = f"\U0001F465 Volných míst: {zbyva}" if zbyva > 0 else "\u26D4 Aktuálně plno"
+            zprava = (f"\U0001F195 <b>Nový turnaj se vypsal!</b>\n\n"
+                      f"<b>{nazev}</b>\n"
+                      f"\U0001F4C5 {datum}  \u23F0 {cas}\n"
+                      f"{volno}\n\n"
+                      f"\U0001F449 {odkaz}")
+            poslat_zpravu(zprava)
+            print("  -> NOVY TURNAJ, notifikace odeslana!")
+        elif drive <= 0 and zbyva > 0:
+            # znamy turnaj, ktery byl plny a ted se uvolnilo misto
             zprava = (f"\U0001F3BE <b>Volné místo na turnaji!</b>\n\n"
                       f"<b>{nazev}</b>\n"
                       f"\U0001F4C5 {datum}  \u23F0 {cas}\n"
                       f"\U0001F465 Volných míst: {zbyva}\n\n"
                       f"\U0001F449 {odkaz}")
             poslat_zpravu(zprava)
-            print("  -> notifikace odeslana!")
+            print("  -> UVOLNENE MISTO, notifikace odeslana!")
+        # jinak: znamy turnaj beze zmeny -> nic
 
     print(f"Preskoceno {preskoceno} nezajimavych polozek")
-    ulozit_stav({"videno": aktualni_ids}, sha)
-    print(f"Hotovo. Sledovano {len(aktualni_ids)} turnaju.")
+    ulozit_stav({"turnaje": novy_stav}, sha)
+    print(f"Hotovo. Sledovano {len(novy_stav)} turnaju.")
 
 
 if __name__ == "__main__":
