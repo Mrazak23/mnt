@@ -3,6 +3,11 @@ import json
 import os
 import base64
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
+
+# Dny pocitame v pražském case, ne v UTC runneru – jinak nejvzdalenejsi den
+# kolem pulnoci vypadne z okna (UTC je o den pozadu).
+TZ_PRAHA = ZoneInfo("Europe/Prague")
 
 TELEGRAM_TOKEN   = os.environ["TELEGRAM_TOKEN"]
 TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
@@ -44,7 +49,7 @@ def hlavicky():
 
 
 def dny_dopredu():
-    dnes = datetime.now().date()
+    dnes = datetime.now(TZ_PRAHA).date()
     vysledek = []
     for i in range(POCET_DNI):
         den = dnes + timedelta(days=i)
