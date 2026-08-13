@@ -26,16 +26,20 @@ DNI_DOPREDU = 60
 DNY = ["Pondělí", "Úterý", "Středa", "Čtvrtek", "Pátek", "Sobota", "Neděle"]
 
 # Filtr nazvu
-#  - uroven C/D zapsana pismenem (puvodni chovani)
-#  - ratingove americana: Beginners / Intermediates
-#  - vylouceno (ma prednost): rana/obedy/ladies, smisene B-C/C-B,
-#    a dale Starters a High Intermediates (i v kombinaci typu
-#    "Starters & Beginners" nebo "Intermediates + High Intermediates")
-VYLOUCENA_SLOVA = ["MORNING", "LUNCH", "LADIES", "B-C", "B\u2013C", "C-B", "C\u2013B",
-                   "STARTER", "HIGH INTERMEDIATE"]
-LEVEL_PATTERN   = re.compile(r'\b([A-E])(?:-([A-E]))?\b')
-ZAJIMAVE_UROVNE = {"C", "D"}
-ZAJIMAVA_SLOVA  = ["BEGINNER", "INTERMEDIATE"]
+#  - uroven C zapsana pismenem: chyti ciste C, D-C i C-B (cokoli s "C")
+#    -> ciste D uz NEchceme, ale D-C ano; C-B nove ano
+#  - ratingove americana:
+#      * "Intermediates" chceme
+#      * "Intermediates + High Intermediates" chceme (= C-B)
+#      * SAMOTNE "High Intermediates" NEchceme (= ciste B)
+#  - vylouceno (ma prednost): rana/obedy/ladies,
+#    a Starters (i v kombinaci typu "Starters & Beginners")
+VYLOUCENA_SLOVA   = ["MORNING", "LUNCH", "LADIES", "STARTER"]
+LEVEL_PATTERN     = re.compile(r'\b([A-E])(?:-([A-E]))?\b')
+ZAJIMAVE_UROVNE   = {"C"}
+# "High Intermediate(s)" jako celek – vyskyty tohohle z nazvu vyskrtneme,
+# takze zbyle samostatne "Intermediate" prozradi kombinaci Intermediates + High
+HIGH_INTER_PATTERN = re.compile(r'HIGH[\s\-]+INTERMEDIATE')
 
 
 def zajima_me(nazev):
@@ -50,8 +54,13 @@ def zajima_me(nazev):
             urovne.add(m.group(2))
         if urovne & ZAJIMAVE_UROVNE:
             return True
-    # ratingove americana (Starters a High Intermediates uz jsou vyloucene vyse)
-    if any(s in n for s in ZAJIMAVA_SLOVA):
+    # ratingove americana:
+    #  vyskrtnu "High Intermediate(s)" a pak hledam zbyle "Intermediate"
+    #   - "Intermediates"                    -> zbyde "INTERMEDIATE" -> ano
+    #   - "Intermediates + High Intermediates"-> zbyde "INTERMEDIATE" -> ano (C-B)
+    #   - "High Intermediates" samotne        -> nic nezbyde         -> ne (ciste B)
+    bez_high = HIGH_INTER_PATTERN.sub("", n)
+    if "INTERMEDIATE" in bez_high:
         return True
     return False
 
