@@ -3,8 +3,9 @@ import re
 import json
 import base64
 import requests
-from urllib.parse import quote
+from urllib.parse import quote, quote_plus
 from datetime import datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
 
 # Konfigurace
 TG_TOKEN = os.environ["TELEGRAM_TOKEN"]
@@ -17,52 +18,101 @@ COMPANY_ID = os.environ["SERVICE_COMPANY_ID"]  # 217
 CLUB_ID    = os.environ["SERVICE_CLUB_ID"]     # 216927
 DOMAIN     = os.environ["SERVICE_DOMAIN"]      # PADELOSCO
 
-# Odkaz na detail konkretniho turnaje (id + nazev se doplni za behu)
-DETAIL_URL = f"https://player.padelos.co/club/{CLUB_ID}/tournaments/tournament-detail"
+TZ_PRAHA = ZoneInfo("Europe/Prague")
+
+# Odkazy na detail (id + nazev se doplni za behu)
+TURNAJ_URL = f"https://player.padelos.co/club/{CLUB_ID}/tournaments/tournament-detail"
+AKCE_URL   = f"https://player.padelos.co/club/{CLUB_ID}/events/event-detail"
 
 STATE_FILE  = "tour_state.json"
-DNI_DOPREDU = 60
+DNI_DOPREDU = 180
 
 DNY = ["Pondělí", "Úterý", "Středa", "Čtvrtek", "Pátek", "Sobota", "Neděle"]
 
-# Filtr nazvu
-#  - uroven C zapsana pismenem: chyti ciste C, D-C i C-B (cokoli s "C")
-#    -> ciste D uz NEchceme, ale D-C ano; C-B nove ano
-#  - ratingove americana:
-#      * "Intermediates" chceme
-#      * "Intermediates + High Intermediates" chceme (= C-B)
-#      * SAMOTNE "High Intermediates" NEchceme (= ciste B)
-#  - vylouceno (ma prednost): rana/obedy/ladies,
-#    a Starters (i v kombinaci typu "Starters & Beginners")
-VYLOUCENA_SLOVA   = ["MORNING", "LUNCH", "LADIES", "STARTER"]
-LEVEL_PATTERN     = re.compile(r'\b([A-E])(?:-([A-E]))?\b')
-ZAJIMAVE_UROVNE   = {"C"}
-# "High Intermediate(s)" jako celek – vyskyty tohohle z nazvu vyskrtneme,
-# takze zbyle samostatne "Intermediate" prozradi kombinaci Intermediates + High
-HIGH_INTER_PATTERN = re.compile(r'HIGH[\s\-]+INTERMEDIATE')
+# ---------------------------------------------------------------------------
+# PRAVIDLA (plati pro turnaje i akce)
+#  1) muj rating 3.0 musi byt v rozsahu: minRating <= 3.0 < maxRating
+#     -> akce, kde je 3.00 horni hranice (Beginners 1.0-3.0 apod.), NEhlasime
+#  2) jen pro zeny / LADIES -> ne
+#  3) ranni akce ve vsedni dny (start pred RANNI_DO) -> ne; o vikendu
+#     a ve statni svatky ano
+#  4) kdyz akce rating nema vyplneny, rozhodne nazev:
+#     Beginners/Starters bez Intermediate -> ne, uroven pismenem jen s C
+#     (C, B-C) -> ano, C-D / D / E -> ne, jinak ano
+# ---------------------------------------------------------------------------
+MUJ_RATING = 3.0
+RANNI_DO   = 10          # vsedni den se startem pred 10:00 = ranni akce
+LEVEL_PATTERN = re.compile(r'\b([A-E])(?:\s*[-–]\s*([A-E]))?\b')
 
 
-def zajima_me(nazev):
-    n = nazev.upper()
-    # vyloucene slovo kdekoli v nazvu -> ihned pryc (ma prednost pred zajimavymi)
-    if any(s in n for s in VYLOUCENA_SLOVA):
+def _cislo(x):
+    try:
+        return float(str(x).replace(",", "."))
+    except (TypeError, ValueError):
+        return None
+
+
+# Ceske statni svatky (MM-DD) - ranni akce se v nich hlasi jako o vikendu
+SVATKY = {"01-01", "05-01", "05-08", "07-05", "07-06", "09-28",
+          "10-28", "11-17", "12-24", "12-25", "12-26"}
+
+
+def velikonoce(rok):
+    """Velikonocni nedele (gregoriansky kalendar)."""
+    a = rok % 19
+    b, c = divmod(rok, 100)
+    d, e = divmod(b, 4)
+    g = (8 * b + 13) // 25
+    h = (19 * a + b - d - g + 15) % 30
+    i, k = divmod(c, 4)
+    l = (2 * e + 2 * i - h - k + 32) % 7
+    m = (a + 11 * h + 19 * l) // 433
+    mesic = (h + l - 7 * m + 90) // 25
+    den = (h + l - 7 * m + 33 * mesic + 19) % 32
+    return datetime(rok, mesic, den)
+
+
+def je_volno(d):
+    """Vikend nebo statni svatek (vcetne Velkeho patku a Velikonocniho pondeli)."""
+    if d.weekday() >= 5 or d.strftime("%m-%d") in SVATKY:
+        return True
+    nedele = velikonoce(d.year)
+    return d.date() in ((nedele - timedelta(days=2)).date(),
+                        (nedele + timedelta(days=1)).date())
+
+
+def zajima_me(nazev, min_r, max_r, gender, datum_str, cas_str):
+    n = (nazev or "").upper()
+
+    # 2) jen pro zeny
+    if (gender or "").lower() == "female" or "LADIES" in n:
         return False
-    # uroven C/D zapsana pismenem
+
+    # 3) ranni akce ve vsedni den
+    try:
+        d = datetime.strptime(datum_str, "%Y-%m-%d")
+        hodina = int((cas_str or "99")[:2])
+        if not je_volno(d) and hodina < RANNI_DO:
+            return False
+    except ValueError:
+        pass
+
+    # 1) rating
+    lo, hi = _cislo(min_r), _cislo(max_r)
+    if lo is not None and hi is not None:
+        return lo <= MUJ_RATING < hi
+
+    # 4) rating chybi -> podle nazvu
+    if ("BEGINNER" in n or "STARTER" in n) and "INTERMEDIATE" not in n:
+        return False
+    urovne = set()
     for m in LEVEL_PATTERN.finditer(n):
-        urovne = {m.group(1)}
+        urovne.add(m.group(1))
         if m.group(2):
             urovne.add(m.group(2))
-        if urovne & ZAJIMAVE_UROVNE:
-            return True
-    # ratingove americana:
-    #  vyskrtnu "High Intermediate(s)" a pak hledam zbyle "Intermediate"
-    #   - "Intermediates"                    -> zbyde "INTERMEDIATE" -> ano
-    #   - "Intermediates + High Intermediates"-> zbyde "INTERMEDIATE" -> ano (C-B)
-    #   - "High Intermediates" samotne        -> nic nezbyde         -> ne (ciste B)
-    bez_high = HIGH_INTER_PATTERN.sub("", n)
-    if "INTERMEDIATE" in bez_high:
-        return True
-    return False
+    if urovne:
+        return "C" in urovne and not (urovne & {"D", "E"})
+    return True
 
 
 def hlavicky():
@@ -77,31 +127,81 @@ def hlavicky():
     }
 
 
+# ------------------------------- API ---------------------------------------
+
 def ziskat_turnaje():
+    """Vrati seznam polozek ve spolecnem formatu, nebo None pri chybe."""
     r = requests.get(
         f"{API_URL}/customers/tournament/listing",
         headers=hlavicky(),
-        params={
-            "clubId": "",
-            "limit": 200,
-            "sport": "Padel",
-            "format": "",
-            "category": "",
-            "hideFilters": "registration_closed",
-            "page": "",
-        },
+        params={"clubId": "", "limit": 200, "sport": "Padel", "format": "",
+                "category": "", "hideFilters": "registration_closed", "page": ""},
         timeout=20,
     )
     if r.status_code != 200:
-        print(f"Chyba API: {r.status_code} {r.text[:150]}")
-        return []
+        print(f"Chyba API turnaje: {r.status_code} {r.text[:150]}")
+        return None
     data = r.json().get("data", {})
-    return data.get("rows", []) if isinstance(data, dict) else []
+    rows = data.get("rows", []) if isinstance(data, dict) else []
+    vysledek = []
+    for t in rows:
+        try:
+            zbyva = int(t.get("remainingSlots", 0))
+        except (ValueError, TypeError):
+            zbyva = 1
+        vysledek.append({
+            "id": str(t.get("id", "")), "nazev": t.get("name", ""),
+            "datum": t.get("startDate", ""), "cas": t.get("startTime", ""),
+            "min": t.get("minRating"), "max": t.get("maxRating"),
+            "gender": t.get("gender"), "zbyva": zbyva,
+            "otevreno": t.get("isRegistrationOpen", True),
+        })
+    return vysledek
 
 
-def formatovat(t):
-    datum_raw = t.get("startDate", "")
-    cas_raw   = t.get("startTime", "")
+def ziskat_akce():
+    """Sekce Akce (eventsBooking). Vrati seznam, nebo None pri chybe."""
+    rows = []
+    for strana in range(1, 11):
+        r = requests.get(
+            f"{API_URL}/customers/club/eventsBooking",
+            headers=hlavicky(),
+            params={"eventType": "", "clubId": CLUB_ID, "status": "", "type": "",
+                    "limit": 50, "availability": "all", "page": strana},
+            timeout=20,
+        )
+        if r.status_code != 200:
+            print(f"Chyba API akce: {r.status_code} {r.text[:150]}")
+            return None
+        data = r.json().get("data", {})
+        if not isinstance(data, dict):
+            break
+        rows.extend(data.get("rows", []))
+        if not data.get("hasMore"):
+            break
+    vysledek = []
+    for e in rows:
+        if e.get("status") != "Published":
+            continue
+        kapacita = e.get("maxParticipants")
+        prihlaseno = e.get("participantCount") or 0
+        try:
+            zbyva = max(0, int(kapacita) - int(prihlaseno))
+        except (TypeError, ValueError):
+            zbyva = 1
+        vysledek.append({
+            "id": str(e.get("id", "")), "nazev": e.get("name", ""),
+            "datum": e.get("startDate", ""), "cas": e.get("startTime", ""),
+            "min": e.get("minRating"), "max": e.get("maxRating"),
+            "gender": e.get("gender"), "zbyva": zbyva,
+            "otevreno": e.get("isRegistrationOpen", True),
+        })
+    return vysledek
+
+
+# ----------------------------- Telegram ------------------------------------
+
+def formatovat(datum_raw, cas_raw):
     try:
         d = datetime.strptime(datum_raw, "%Y-%m-%d")
         datum = f"{DNY[d.weekday()]} {d.strftime('%d.%m.%Y')}"
@@ -112,16 +212,23 @@ def formatovat(t):
 
 
 def poslat_zpravu(text):
-    r = requests.post(
-        f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage",
-        json={"chat_id": TG_CHAT, "text": text, "parse_mode": "HTML",
-              "disable_web_page_preview": True},
-        timeout=10,
-    )
-    print(f"Zprava odeslana: {r.status_code}")
+    try:
+        r = requests.post(
+            f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage",
+            json={"chat_id": TG_CHAT, "text": text, "parse_mode": "HTML",
+                  "disable_web_page_preview": True},
+            timeout=10,
+        )
+        print(f"Zprava odeslana: {r.status_code}")
+        return r.status_code == 200
+    except Exception as e:
+        print(f"Chyba Telegramu: {e}")
+        return False
 
 
-def nacist_stav():
+# ------------------------------- Stav --------------------------------------
+
+def _nacist_raw():
     r = requests.get(
         f"https://api.github.com/repos/{GH_REPO}/contents/{STATE_FILE}",
         headers={"Authorization": f"Bearer {GH_TOKEN}",
@@ -129,15 +236,27 @@ def nacist_stav():
         timeout=10,
     )
     if r.status_code == 404:
-        # uplne prvni beh -> seed bez notifikaci
-        return {"turnaje": {}, "prvni_beh": True}, None
-    data  = r.json()
-    obsah = json.loads(base64.b64decode(data["content"]).decode())
-    if isinstance(obsah.get("turnaje"), dict):
-        # novy format {tid: zbyva}
-        return {"turnaje": obsah["turnaje"], "prvni_beh": False}, data["sha"]
-    # stary format {"videno": [ids]} -> migrace, tento beh jen nastype stav, neflooduje
-    return {"turnaje": {}, "prvni_beh": True}, data["sha"]
+        return {}, None
+    data = r.json()
+    return json.loads(base64.b64decode(data["content"]).decode()), data["sha"]
+
+
+def _normalizovat(sekce):
+    """{id: {"z": volna_mista, "d": datum}}; stary format {id: cislo} prevede."""
+    if not isinstance(sekce, dict):
+        return None
+    out = {}
+    for k, v in sekce.items():
+        if isinstance(v, dict):
+            out[k] = {"z": v.get("z", 0), "d": v.get("d")}
+        else:
+            out[k] = {"z": v, "d": None}
+    return out
+
+
+def nacist_stav():
+    obsah, sha = _nacist_raw()
+    return _normalizovat(obsah.get("turnaje")), _normalizovat(obsah.get("akce")), sha
 
 
 def ulozit_stav(stav, sha, pokus=0):
@@ -157,88 +276,108 @@ def ulozit_stav(stav, sha, pokus=0):
         return
     if r.status_code == 409 and pokus < 3:
         print(f"  Konflikt pri ukladani, zkousim znovu (pokus {pokus + 1})")
-        _, novy_sha = nacist_stav()
+        _, novy_sha = _nacist_raw()
         return ulozit_stav(stav, novy_sha, pokus + 1)
     print(f"Chyba ukladani stavu: {r.status_code} {r.text[:200]}")
+
+
+# ------------------------------ Logika -------------------------------------
+
+def zpracovat(polozky, zname, druh, dnes, konec):
+    """druh = "turnaj" / "akce". zname = None -> prvni beh, jen nastype stav."""
+    prvni_beh = zname is None
+    zname = zname or {}
+    novy = {}
+    preskoceno = 0
+
+    if prvni_beh:
+        print(f"[{druh}] PRVNI BEH -> jen ulozim stav, notifikace neposilam.")
+
+    for p in polozky:
+        pid, nazev = p["id"], p["nazev"]
+        if not pid:
+            continue
+        try:
+            d = datetime.strptime(p["datum"], "%Y-%m-%d").date()
+            if not (dnes <= d <= konec):
+                continue
+        except ValueError:
+            pass
+        if not p["otevreno"]:
+            continue
+        if not zajima_me(nazev, p["min"], p["max"], p["gender"], p["datum"], p["cas"]):
+            preskoceno += 1
+            continue
+
+        zbyva = p["zbyva"]
+        drive = zname.get(pid)          # None = nikdy nevideno
+        datum, cas = formatovat(p["datum"], p["cas"])
+        print(f"  [{druh}] {nazev}: zbyva {zbyva} ({datum} {cas})")
+
+        if prvni_beh:
+            novy[pid] = {"z": zbyva, "d": p["datum"]}
+            continue
+
+        if druh == "turnaj":
+            odkaz = f"{TURNAJ_URL}?tournamentId={pid}&name={quote(nazev)}"
+            t_novy, t_misto = "Nový turnaj se vypsal!", "Volné místo na turnaji!"
+        else:
+            odkaz = f"{AKCE_URL}?eventId={pid}&type=active&name={quote_plus(nazev)}"
+            t_novy, t_misto = "Nová akce!", "Volné místo na akci!"
+
+        lo, hi = _cislo(p["min"]), _cislo(p["max"])
+        rating = f"\U0001F4CA Rating {lo:.1f}–{hi:.1f}\n" if lo is not None and hi is not None else ""
+
+        if drive is None:
+            volno = f"\U0001F465 Volných míst: {zbyva}" if zbyva > 0 else "⛔ Aktuálně plno"
+            zprava = (f"\U0001F195 <b>{t_novy}</b>\n\n<b>{nazev}</b>\n"
+                      f"\U0001F4C5 {datum}  ⏰ {cas}\n{rating}{volno}\n\n\U0001F449 {odkaz}")
+            if poslat_zpravu(zprava):
+                novy[pid] = {"z": zbyva, "d": p["datum"]}
+                print("  -> NOVE, notifikace odeslana!")
+            # kdyz se zprava neodeslala, nezapamatuju si to -> zkusi se pristi beh
+        elif drive["z"] <= 0 and zbyva > 0:
+            zprava = (f"\U0001F3BE <b>{t_misto}</b>\n\n<b>{nazev}</b>\n"
+                      f"\U0001F4C5 {datum}  ⏰ {cas}\n{rating}"
+                      f"\U0001F465 Volných míst: {zbyva}\n\n\U0001F449 {odkaz}")
+            if poslat_zpravu(zprava):
+                novy[pid] = {"z": zbyva, "d": p["datum"]}
+                print("  -> UVOLNENE MISTO, notifikace odeslana!")
+            else:
+                novy[pid] = drive
+        else:
+            novy[pid] = {"z": zbyva, "d": p["datum"]}
+
+    # Co tentokrat v API nebylo, si pamatuju dal (dokud neprobehlo),
+    # aby se pri "blikani" API neposilala znovu notifikace "Nove".
+    for pid, v in zname.items():
+        if pid not in novy and v.get("d") and v["d"] >= dnes.isoformat():
+            novy[pid] = v
+
+    print(f"[{druh}] preskoceno {preskoceno} nezajimavych, sledovano {len(novy)}")
+    return novy
 
 
 def spustit():
     print(f"Kontrola: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
 
     turnaje = ziskat_turnaje()
-    if not turnaje:
-        print("Zadne turnaje (nebo chyba), koncim bez zmeny stavu.")
+    akce    = ziskat_akce()
+    if turnaje is None and akce is None:
+        print("Obe API selhala, koncim bez zmeny stavu.")
         return
 
-    dnes  = datetime.now(timezone.utc).date()
+    dnes  = datetime.now(TZ_PRAHA).date()
     konec = dnes + timedelta(days=DNI_DOPREDU)
 
-    stav, sha = nacist_stav()
-    zname     = stav["turnaje"]      # {tid: posledni znamy pocet volnych mist}
-    prvni_beh = stav["prvni_beh"]    # True = jen nastype stav, neposila notifikace
-    novy_stav  = {}
-    preskoceno = 0
+    zname_t, zname_a, sha = nacist_stav()
 
-    if prvni_beh:
-        print("PRVNI BEH / migrace formatu -> jen nastype stav, notifikace se neposilaji.")
+    # pri chybe API sekci nechavam beze zmeny
+    novy_t = zpracovat(turnaje, zname_t, "turnaj", dnes, konec) if turnaje is not None else zname_t
+    novy_a = zpracovat(akce, zname_a, "akce", dnes, konec) if akce is not None else zname_a
 
-    for t in turnaje:
-        tid   = str(t.get("id", ""))
-        nazev = t.get("name", "")
-        if not tid:
-            continue
-        if not zajima_me(nazev):
-            preskoceno += 1
-            continue
-        try:
-            d = datetime.strptime(t.get("startDate", ""), "%Y-%m-%d").date()
-            if not (dnes <= d <= konec):
-                continue
-        except ValueError:
-            pass
-        if not t.get("isRegistrationOpen", True):
-            continue
-        try:
-            zbyva = int(t.get("remainingSlots", 0))
-        except (ValueError, TypeError):
-            zbyva = 1
-
-        # zapamatuj si aktualni stav turnaje (i plneho)
-        drive = zname.get(tid)            # None = nikdy nevideny turnaj
-        novy_stav[tid] = zbyva
-
-        datum, cas = formatovat(t)
-        print(f"  {nazev}: zbyva {zbyva} mist ({datum} {cas})")
-
-        if prvni_beh:
-            continue
-
-        odkaz = f"{DETAIL_URL}?tournamentId={tid}&name={quote(nazev)}"
-
-        if drive is None:
-            # uplne novy turnaj v listingu
-            volno = f"\U0001F465 Volných míst: {zbyva}" if zbyva > 0 else "\u26D4 Aktuálně plno"
-            zprava = (f"\U0001F195 <b>Nový turnaj se vypsal!</b>\n\n"
-                      f"<b>{nazev}</b>\n"
-                      f"\U0001F4C5 {datum}  \u23F0 {cas}\n"
-                      f"{volno}\n\n"
-                      f"\U0001F449 {odkaz}")
-            poslat_zpravu(zprava)
-            print("  -> NOVY TURNAJ, notifikace odeslana!")
-        elif drive <= 0 and zbyva > 0:
-            # znamy turnaj, ktery byl plny a ted se uvolnilo misto
-            zprava = (f"\U0001F3BE <b>Volné místo na turnaji!</b>\n\n"
-                      f"<b>{nazev}</b>\n"
-                      f"\U0001F4C5 {datum}  \u23F0 {cas}\n"
-                      f"\U0001F465 Volných míst: {zbyva}\n\n"
-                      f"\U0001F449 {odkaz}")
-            poslat_zpravu(zprava)
-            print("  -> UVOLNENE MISTO, notifikace odeslana!")
-        # jinak: znamy turnaj beze zmeny -> nic
-
-    print(f"Preskoceno {preskoceno} nezajimavych polozek")
-    ulozit_stav({"turnaje": novy_stav}, sha)
-    print(f"Hotovo. Sledovano {len(novy_stav)} turnaju.")
+    ulozit_stav({"turnaje": novy_t, "akce": novy_a}, sha)
+    print("Hotovo.")
 
 
 if __name__ == "__main__":
